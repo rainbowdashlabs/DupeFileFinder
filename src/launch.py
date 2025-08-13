@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Launcher for the Web-based File Scanner GUI.
 """
@@ -10,11 +9,8 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 try:
-    from web_scanner_gui import app, create_html_template
-    
-    # Create HTML template
-    create_html_template()
-    
+    from web_scanner_gui import app
+
     print("=" * 50)
     print("File Duplicate Scanner Web GUI")
     print("=" * 50)
