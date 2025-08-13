@@ -17,6 +17,20 @@ from datetime import datetime
 from typing import List, Tuple, Set
 from dataclasses import dataclass
 
+# Resolve project root regardless of current working directory
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+
+def resolve_db_path(db_path: str) -> str:
+    """Always resolve the SQLite DB file under the project root.
+    Only the basename of the provided path is used to avoid directory traversal.
+    Defaults to 'file_scanner.db' if value is empty/invalid.
+    """
+    try:
+        db_file = os.path.basename((db_path or '').strip()) or 'file_scanner.db'
+    except Exception:
+        db_file = 'file_scanner.db'
+    return os.path.join(PROJECT_ROOT, db_file)
+
 
 @dataclass
 class ScanStats:
@@ -715,8 +729,11 @@ Examples:
         args.excluded_dirs = []
     
     try:
+        # Resolve database path to always live under project root
+        resolved_db = resolve_db_path(args.db)
+
         # Create database connection
-        conn = create_database(args.db)
+        conn = create_database(resolved_db)
         
         # Scan files and store in database (incremental)
         files_processed = scan_files(
@@ -743,7 +760,7 @@ Examples:
             print(f"  Excluded directories: {', '.join(args.excluded_dirs)}")
         print(f"  Files processed this scan: {files_processed}")
         print(f"  Duplicate sets found: {len(duplicates)}")
-        print(f"  Database: {os.path.abspath(args.db)}")
+        print(f"  Database: {os.path.abspath(resolved_db)}")
         
         # Return list of all duplicate file paths
         all_duplicate_paths = []
