@@ -41,7 +41,7 @@ A powerful Python-based tool for finding and managing duplicate files on your sy
 1. **Clone or download the project files**
 2. **Install dependencies**:
    ```bash
-   pipenv install
+   pipenv sync
    ```
 3. **Activate the virtual environment**:
    ```bash
@@ -55,7 +55,7 @@ A powerful Python-based tool for finding and managing duplicate files on your sy
 The web interface provides the easiest way to use the scanner:
 
 ```bash
-python run_web_gui.py
+pipenv run launcher.py
 ```
 
 Then open your browser to: `http://localhost:5000`
