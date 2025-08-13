@@ -55,7 +55,7 @@ A powerful Python-based tool for finding and managing duplicate files on your sy
 The web interface provides the easiest way to use the scanner:
 
 ```bash
-pipenv run launcher.py
+python ./src/launcher.py
 ```
 
 Then open your browser to: `http://localhost:5000`
