@@ -1,0 +1,1931 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DupHunter - File Duplicate Scanner</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0d0d0f;
+            --bg-secondary: #1a1a1f;
+            --bg-tertiary: #262629;
+            --bg-card: #1e1e22;
+            --bg-input: #2a2a2f;
+            --orange-primary: #ff6b35;
+            --orange-secondary: #ff8c42;
+            --red-primary: #ff4757;
+            --red-secondary: #ff3838;
+            --text-primary: #ffffff;
+            --text-secondary: #b8b8b8;
+            --text-muted: #6b6b6b;
+            --border-color: #333338;
+            --shadow-glow: rgba(255, 107, 53, 0.3);
+            --gradient-primary: linear-gradient(135deg, #ff6b35 0%, #ff4757 100%);
+            --gradient-secondary: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%);
+            --gradient-bg: radial-gradient(ellipse at top, rgba(255, 107, 53, 0.1) 0%, transparent 70%);
+        }
+
+        body {
+            background: var(--bg-primary);
+            background-image: var(--gradient-bg);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .app-container {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            height: 100vh;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sidebar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 150px;
+            background: linear-gradient(180deg, rgba(255, 107, 53, 0.1) 0%, transparent 100%);
+            pointer-events: none;
+        }
+
+        .sidebar-header {
+            padding: 24px 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--gradient-primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 800;
+            color: white;
+            box-shadow: 0 4px 16px var(--shadow-glow);
+        }
+
+        .logo-text h1 {
+            font-size: 24px;
+            font-weight: 800;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo-text p {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .level-display {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 16px 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .level-display::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--gradient-primary);
+        }
+
+        .level-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .level-number {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--orange-primary);
+        }
+
+        .xp-display {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .xp-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--bg-input);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .xp-progress {
+            height: 100%;
+            background: var(--gradient-secondary);
+            border-radius: 4px;
+            width: 65%;
+            transition: width 0.5s ease;
+            position: relative;
+        }
+
+        .xp-progress::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .nav-menu {
+            flex: 1;
+            padding: 0 12px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            margin-bottom: 4px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-secondary);
+            font-weight: 500;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 107, 53, 0.1), transparent);
+            transition: left 0.3s ease;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 107, 53, 0.1);
+            color: var(--text-primary);
+            transform: translateX(4px);
+        }
+
+        .nav-item:hover::before {
+            left: 0;
+        }
+
+        .nav-item.active {
+            background: var(--gradient-primary);
+            color: white;
+            box-shadow: 0 4px 16px rgba(255, 107, 53, 0.4);
+            transform: translateX(4px);
+        }
+
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+            flex-shrink: 0;
+        }
+
+        .nav-badge {
+            background: var(--red-primary);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-left: auto;
+        }
+
+        /* Main Content */
+        .main-content {
+            background: var(--bg-primary);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 20px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--orange-primary), transparent);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-title {
+            font-size: 28px;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-stats {
+            display: flex;
+            gap: 20px;
+        }
+
+        .stat-chip {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            color: var(--orange-primary);
+            font-weight: 700;
+        }
+
+        .status-indicator {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4ade80;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.scanning {
+            background: var(--orange-primary);
+        }
+
+        .status-dot.error {
+            background: var(--red-primary);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .content-area {
+            flex: 1;
+            padding: 32px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--orange-primary) var(--bg-tertiary);
+        }
+
+        .content-area::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .content-area::-webkit-scrollbar-track {
+            background: var(--bg-tertiary);
+        }
+
+        .content-area::-webkit-scrollbar-thumb {
+            background: var(--orange-primary);
+            border-radius: 3px;
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+            animation: fadeInUp 0.4s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Scanner Panel */
+        .scanner-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .scanner-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--gradient-primary);
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: between;
+            margin-bottom: 24px;
+        }
+
+        .panel-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .panel-icon {
+            width: 24px;
+            height: 24px;
+            padding: 8px;
+            background: var(--gradient-primary);
+            border-radius: 8px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 16px 20px;
+            background: var(--bg-input);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .form-input:focus {
+            border-color: var(--orange-primary);
+            box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.1);
+            background: var(--bg-secondary);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 0;
+        }
+
+        .custom-checkbox {
+            position: relative;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .custom-checkbox input {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .checkmark {
+            width: 20px;
+            height: 20px;
+            background: var(--bg-input);
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            margin-right: 12px;
+            position: relative;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .custom-checkbox:hover .checkmark {
+            border-color: var(--orange-primary);
+            background: rgba(255, 107, 53, 0.1);
+        }
+
+        .custom-checkbox input:checked ~ .checkmark {
+            background: var(--gradient-primary);
+            border-color: var(--orange-primary);
+            box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.1);
+        }
+
+        .checkmark::after {
+            content: "✓";
+            color: white;
+            font-size: 12px;
+            font-weight: 700;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .custom-checkbox input:checked ~ .checkmark::after {
+            opacity: 1;
+        }
+
+        .checkbox-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        .excluded-dirs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .excluded-dir-tag {
+            background: var(--gradient-secondary);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);
+        }
+
+        .remove-tag {
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            transition: all 0.2s ease;
+        }
+
+        .remove-tag:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .scan-button {
+            background: var(--gradient-primary);
+            border: none;
+            border-radius: 12px;
+            padding: 16px 32px;
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 4px 16px rgba(255, 107, 53, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .scan-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .scan-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(255, 107, 53, 0.5);
+        }
+
+        .scan-button:hover::before {
+            left: 100%;
+        }
+
+        .scan-button:active {
+            transform: translateY(0);
+        }
+
+        .scan-button:disabled {
+            background: var(--bg-input);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Progress Section */
+        .progress-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.4s ease;
+        }
+
+        .progress-section.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .progress-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .progress-percentage {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--orange-primary);
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 12px;
+            background: var(--bg-input);
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 12px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--gradient-primary);
+            border-radius: 6px;
+            width: 0%;
+            transition: width 0.5s ease;
+            position: relative;
+        }
+
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: slide 2s infinite;
+        }
+
+        @keyframes slide {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .progress-text {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* Results Section */
+        .results-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .results-header {
+            background: var(--bg-secondary);
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .results-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .results-count {
+            background: var(--gradient-primary);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 700;
+            box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);
+        }
+
+        .duplicate-set {
+            border-bottom: 1px solid var(--border-color);
+            padding: 24px;
+            transition: all 0.3s ease;
+        }
+
+        .duplicate-set:last-child {
+            border-bottom: none;
+        }
+
+        .duplicate-set:hover {
+            background: rgba(255, 107, 53, 0.05);
+        }
+
+        .duplicate-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .duplicate-info h3 {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .duplicate-hash {
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 12px;
+            color: var(--text-muted);
+            background: var(--bg-input);
+            padding: 4px 8px;
+            border-radius: 6px;
+            display: inline-block;
+        }
+
+        .duplicate-score {
+            background: var(--gradient-secondary);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .file-list {
+            list-style: none;
+        }
+
+        .file-item {
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .file-item:hover {
+            border-color: var(--orange-primary);
+            background: rgba(255, 107, 53, 0.1);
+            transform: translateX(4px);
+        }
+
+        .file-icon {
+            width: 24px;
+            height: 24px;
+            padding: 8px;
+            background: var(--gradient-primary);
+            border-radius: 8px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .file-info {
+            flex: 1;
+        }
+
+        .file-path {
+            font-size: 14px;
+            color: var(--text-primary);
+            font-weight: 500;
+            margin-bottom: 4px;
+            word-break: break-all;
+        }
+
+        .file-size {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-btn {
+            padding: 8px 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .action-btn:hover {
+            background: var(--orange-primary);
+            border-color: var(--orange-primary);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .action-btn.danger {
+            background: var(--red-primary);
+            border-color: var(--red-primary);
+            color: white;
+        }
+
+        .action-btn.danger:hover {
+            background: #ff2d2d;
+            transform: translateY(-1px);
+        }
+
+        /* Statistics Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--gradient-primary);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 32px rgba(255, 107, 53, 0.2);
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 16px;
+            background: var(--gradient-primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: 800;
+            color: var(--orange-primary);
+            margin-bottom: 8px;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Logs */
+        .log-container {
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 4px 0;
+        }
+
+        .log-entry.info {
+            color: var(--text-secondary);
+        }
+
+        .log-entry.success {
+            color: #4ade80;
+        }
+
+        .log-entry.warning {
+            color: var(--orange-primary);
+        }
+
+        .log-entry.error {
+            color: var(--red-primary);
+        }
+
+        .log-timestamp {
+            color: var(--text-muted);
+            margin-right: 12px;
+        }
+
+        /* Empty State */
+        .empty-state {
+            padding: 60px 20px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .empty-state-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 24px;
+            opacity: 0.5;
+            fill: currentColor;
+        }
+
+        .empty-state h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .app-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr;
+            }
+            
+            .sidebar {
+                order: 2;
+                height: auto;
+                border-right: none;
+                border-top: 1px solid var(--border-color);
+            }
+            
+            .main-content {
+                order: 1;
+            }
+            
+            .nav-menu {
+                display: flex;
+                overflow-x: auto;
+                padding: 16px 12px;
+            }
+            
+            .nav-item {
+                white-space: nowrap;
+                margin-right: 8px;
+                margin-bottom: 0;
+            }
+            
+            .level-display {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .content-area {
+                padding: 16px;
+            }
+            
+            .scanner-panel {
+                padding: 20px;
+            }
+            
+            .header {
+                padding: 16px 20px;
+                flex-direction: column;
+                gap: 16px;
+                align-items: stretch;
+            }
+            
+            .header-stats {
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Achievement Notification */
+        .achievement-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--gradient-primary);
+            color: white;
+            padding: 16px 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(255, 107, 53, 0.4);
+            transform: translateX(400px);
+            transition: transform 0.4s ease;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 600;
+        }
+
+        .achievement-notification.show {
+            transform: translateX(0);
+        }
+
+        .achievement-icon {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">🔥</div>
+                    <div class="logo-text">
+                        <h1>DupHunter</h1>
+                        <p>File Scanner Pro</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="level-display">
+                <div class="level-info">
+                    <div class="level-number">Level 7</div>
+                    <div class="xp-display">1,250 / 2,000 XP</div>
+                </div>
+                <div class="xp-bar">
+                    <div class="xp-progress"></div>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <div class="nav-item active" data-tab="scanner">
+                    <svg class="nav-icon" viewBox="0 0 24 24">
+                        <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1H5C3.89 1 3 1.89 3 3V21C3 22.11 3.89 23 5 23H11V21H5V3H13V9H21Z"/>
+                    </svg>
+                    Mission Control
+                </div>
+                
+                <div class="nav-item" data-tab="results">
+                    <svg class="nav-icon" viewBox="0 0 24 24">
+                        <path d="M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2M19,11C19,14.53 16.39,17.44 13,17.93V21H11V17.93C7.61,17.44 5,14.53 5,11H7A5,5 0 0,0 12,16A5,5 0 0,0 17,11H19Z"/>
+                    </svg>
+                    Hunt Results
+                    <span class="nav-badge" id="results-badge">0</span>
+                </div>
+                
+                <div class="nav-item" data-tab="statistics">
+                    <svg class="nav-icon" viewBox="0 0 24 24">
+                        <path d="M22,21H2V3H4V19H6V17H10V19H12V16H16V19H18V17H22V21Z"/>
+                    </svg>
+                    Analytics
+                </div>
+                
+                <div class="nav-item" data-tab="achievements">
+                    <svg class="nav-icon" viewBox="0 0 24 24">
+                        <path d="M5,16L3,5H1L3.5,17.5C3.6,18.1 4.1,18.5 4.7,18.5H19.3C19.9,18.5 20.4,18.1 20.5,17.5L23,5H21L19,16H5Z"/>
+                    </svg>
+                    Achievements
+                </div>
+                
+                <div class="nav-item" data-tab="logs">
+                    <svg class="nav-icon" viewBox="0 0 24 24">
+                        <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                    </svg>
+                    Battle Log
+                </div>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <div class="header-left">
+                    <h2 class="header-title" id="page-title">Mission Control</h2>
+                </div>
+                
+                <div class="header-stats">
+                    <div class="stat-chip">
+                        <span>Files Scanned:</span>
+                        <span class="stat-value" id="header-scanned">0</span>
+                    </div>
+                    <div class="stat-chip">
+                        <span>Duplicates:</span>
+                        <span class="stat-value" id="header-duplicates">0</span>
+                    </div>
+                    <div class="status-indicator">
+                        <div class="status-dot" id="status-dot"></div>
+                        <span id="status-text">Ready to Hunt</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-area">
+                <!-- Scanner Tab -->
+                <div class="tab-content active" id="scanner-tab">
+                    <div class="scanner-panel">
+                        <div class="panel-header">
+                            <div class="panel-title">
+                                <div class="panel-icon">🎯</div>
+                                Configure Hunt Parameters
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="scan-path">🗂️ Target Directory</label>
+                            <input type="text" id="scan-path" class="form-input" placeholder="Enter the path to scan (e.g., /home/user/documents)">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">⚙️ Hunt Settings</label>
+                            <div class="checkbox-group">
+                                <label class="custom-checkbox">
+                                    <input type="checkbox" id="include-hidden">
+                                    <span class="checkmark"></span>
+                                    <span class="checkbox-label">Include Hidden Files & Folders</span>
+                                </label>
+                            </div>
+                            <div class="checkbox-group">
+                                <label class="custom-checkbox">
+                                    <input type="checkbox" id="show-stats">
+                                    <span class="checkmark"></span>
+                                    <span class="checkbox-label">Generate Detailed Statistics</span>
+                                </label>
+                            </div>
+                            <div class="checkbox-group">
+                                <label class="custom-checkbox">
+                                    <input type="checkbox" id="verbose-mode">
+                                    <span class="checkmark"></span>
+                                    <span class="checkbox-label">Verbose Logging Mode</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="exclude-dir">🚫 Excluded Directories</label>
+                            <input type="text" id="exclude-dir" class="form-input" placeholder="Type directory name and press Enter to exclude">
+                            <div class="excluded-dirs" id="excluded-dirs"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="db-path">💾 Database Location</label>
+                            <input type="text" id="db-path" class="form-input" value="file_scanner.db" placeholder="Path to SQLite database file">
+                        </div>
+
+                        <button class="scan-button" id="start-scan">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M8 5v14l11-7z"/>
+                            </svg>
+                            Begin Hunt
+                        </button>
+                    </div>
+
+                    <!-- Progress Section -->
+                    <div class="progress-section" id="progress-section">
+                        <div class="progress-header">
+                            <div class="progress-title">🔍 Hunt in Progress</div>
+                            <div class="progress-percentage" id="progress-percentage">0%</div>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" id="progress-bar"></div>
+                        </div>
+                        <div class="progress-text" id="progress-text">Initializing hunt parameters...</div>
+                    </div>
+                </div>
+
+                <!-- Results Tab -->
+                <div class="tab-content" id="results-tab">
+                    <div class="results-panel">
+                        <div class="results-header">
+                            <div class="results-title">
+                                🏆 Hunt Results
+                            </div>
+                            <span class="results-count" id="results-count">0 Duplicate Sets</span>
+                        </div>
+                        <div id="results-content">
+                            <div class="empty-state">
+                                <svg class="empty-state-icon" viewBox="0 0 24 24">
+                                    <path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16A6.5 6.5 0 0 1 3 9.5A6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/>
+                                </svg>
+                                <h3>No Hunt Data Available</h3>
+                                <p>Start a scan from Mission Control to discover duplicate files</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Statistics Tab -->
+                <div class="tab-content" id="statistics-tab">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <svg viewBox="0 0 24 24" width="24" height="24">
+                                    <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" fill="currentColor"/>
+                                </svg>
+                            </div>
+                            <div class="stat-value" id="total-files">0</div>
+                            <div class="stat-label">Total Files Discovered</div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <svg viewBox="0 0 24 24" width="24" height="24">
+                                    <path d="M12,2A2,2 0 0,1 14,4C14,4.74 13.6,5.39 13,5.73V7A1,1 0 0,0 14,8H20A2,2 0 0,1 22,10V19A2,2 0 0,1 20,21H4C2.89,21 2,20.1 2,19V10C2,8.89 2.89,8 4,8H10A1,1 0 0,0 11,7V5.73C10.4,5.39 10,4.74 10,4A2,2 0 0,1 12,2M4,10V19H20V10H4Z" fill="currentColor"/>
+                                </svg>
+                            </div>
+                            <div class="stat-value" id="unique-files">0</div>
+                            <div class="stat-label">Unique Files</div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <svg viewBox="0 0 24 24" width="24" height="24">
+                                    <path d="M19,20H4C2.89,20 2,19.1 2,18V6C2,4.89 2.89,4 4,4H10L12,6H19A2,2 0 0,1 21,8H21L4,8V18L6.14,10H23.21L20.93,18.5C20.7,19.37 19.92,20 19,20Z" fill="currentColor"/>
+                                </svg>
+                            </div>
+                            <div class="stat-value" id="duplicate-files">0</div>
+                            <div class="stat-label">Duplicate Files Found</div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <svg viewBox="0 0 24 24" width="24" height="24">
+                                    <path d="M16,6L18.29,8.29L13.41,13.17L9.41,9.17L2,16.59L3.41,18L9.41,12L13.41,16L19.71,9.71L22,12V6H16Z" fill="currentColor"/>
+                                </svg>
+                            </div>
+                            <div class="stat-value" id="storage-efficiency">0%</div>
+                            <div class="stat-label">Storage Efficiency</div>
+                        </div>
+                    </div>
+
+                    <div class="scanner-panel">
+                        <div class="panel-header">
+                            <div class="panel-title">
+                                <div class="panel-icon">📊</div>
+                                Detailed Analytics
+                            </div>
+                        </div>
+                        <div class="empty-state">
+                            <h3>Analytics Dashboard</h3>
+                            <p>Perform a hunt to view detailed file analysis and storage optimization insights</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Achievements Tab -->
+                <div class="tab-content" id="achievements-tab">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">🎯</div>
+                            <div class="stat-value">3</div>
+                            <div class="stat-label">Hunts Completed</div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">🔥</div>
+                            <div class="stat-value">847</div>
+                            <div class="stat-label">Duplicates Eliminated</div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">💾</div>
+                            <div class="stat-value">2.3GB</div>
+                            <div class="stat-label">Space Recovered</div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">⭐</div>
+                            <div class="stat-value">1,250</div>
+                            <div class="stat-label">Experience Points</div>
+                        </div>
+                    </div>
+
+                    <div class="scanner-panel">
+                        <div class="panel-header">
+                            <div class="panel-title">
+                                <div class="panel-icon">🏆</div>
+                                Achievement Gallery
+                            </div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                            <div style="background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; text-align: center;">
+                                <div style="font-size: 32px; margin-bottom: 8px;">🔍</div>
+                                <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">First Hunt</div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">Complete your first duplicate scan</div>
+                            </div>
+                            
+                            <div style="background: var(--bg-input); border: 1px solid var(--orange-primary); border-radius: 12px; padding: 16px; text-align: center; box-shadow: 0 0 16px rgba(255, 107, 53, 0.2);">
+                                <div style="font-size: 32px; margin-bottom: 8px;">⚡</div>
+                                <div style="font-weight: 700; color: var(--orange-primary); margin-bottom: 4px;">Speed Hunter</div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">Scan over 1000 files</div>
+                            </div>
+                            
+                            <div style="background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; text-align: center; opacity: 0.5;">
+                                <div style="font-size: 32px; margin-bottom: 8px;">💎</div>
+                                <div style="font-weight: 700; color: var(--text-muted); margin-bottom: 4px;">Space Saver</div>
+                                <div style="font-size: 12px; color: var(--text-muted);">Save 1GB of storage space</div>
+                            </div>
+                            
+                            <div style="background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; text-align: center; opacity: 0.5;">
+                                <div style="font-size: 32px; margin-bottom: 8px;">🎯</div>
+                                <div style="font-weight: 700; color: var(--text-muted); margin-bottom: 4px;">Precision Hunter</div>
+                                <div style="font-size: 12px; color: var(--text-muted);">Find 100+ duplicate sets</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Logs Tab -->
+                <div class="tab-content" id="logs-tab">
+                    <div class="scanner-panel">
+                        <div class="panel-header">
+                            <div class="panel-title">
+                                <div class="panel-icon">📝</div>
+                                Battle Log
+                            </div>
+                        </div>
+                        
+                        <div class="log-container" id="log-container">
+                            <div class="log-entry info">
+                                <span class="log-timestamp">[12:00:00]</span>
+                                <span>🔥 DupHunter system initialized and ready for battle</span>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 16px;">
+                            <button class="action-btn" id="clear-logs">Clear Battle Log</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Achievement Notification -->
+    <div class="achievement-notification" id="achievement-notification">
+        <svg class="achievement-icon" viewBox="0 0 24 24">
+            <path d="M5,16L3,5H1L3.5,17.5C3.6,18.1 4.1,18.5 4.7,18.5H19.3C19.9,18.5 20.4,18.1 20.5,17.5L23,5H21L19,16H5Z"/>
+        </svg>
+        <span id="achievement-text">Achievement Unlocked!</span>
+    </div>
+
+    <script>
+        class GameifiedDupHunter {
+            constructor() {
+                this.excludedDirs = new Set();
+                this.isScanning = false;
+                this.duplicateResults = [];
+                this.userLevel = 7;
+                this.userXP = 1250;
+                this.maxXP = 2000;
+                this.stats = {
+                    totalScans: 3,
+                    duplicatesFound: 847,
+                    spaceRecovered: '2.3GB'
+                };
+                this.initializeEventListeners();
+                this.updateLevelDisplay();
+            }
+
+            initializeEventListeners() {
+                // Navigation
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.addEventListener('click', () => this.switchTab(item.dataset.tab));
+                });
+
+                // Excluded directories
+                const excludeDirInput = document.getElementById('exclude-dir');
+                excludeDirInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.addExcludedDir(e.target.value.trim());
+                        e.target.value = '';
+                    }
+                });
+
+                // Scan button
+                document.getElementById('start-scan').addEventListener('click', () => {
+                    this.startHunt();
+                });
+
+                // Clear logs
+                document.getElementById('clear-logs').addEventListener('click', () => {
+                    this.clearLogs();
+                });
+            }
+
+            updateLevelDisplay() {
+                const progressPercentage = (this.userXP / this.maxXP) * 100;
+                document.querySelector('.xp-progress').style.width = `${progressPercentage}%`;
+            }
+
+            switchTab(tabName) {
+                // Update navigation
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.classList.toggle('active', item.dataset.tab === tabName);
+                });
+
+                // Update content
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.toggle('active', content.id === `${tabName}-tab`);
+                });
+
+                // Update header title
+                const titles = {
+                    'scanner': 'Mission Control',
+                    'results': 'Hunt Results',
+                    'statistics': 'Analytics Dashboard',
+                    'achievements': 'Achievement Gallery',
+                    'logs': 'Battle Log'
+                };
+                document.getElementById('page-title').textContent = titles[tabName] || 'DupHunter';
+            }
+
+            addExcludedDir(dirname) {
+                if (dirname && !this.excludedDirs.has(dirname)) {
+                    this.excludedDirs.add(dirname);
+                    this.renderExcludedDirs();
+                    this.addLog(`🚫 Directory excluded from hunt: ${dirname}`, 'warning');
+                }
+            }
+
+            removeExcludedDir(dirname) {
+                this.excludedDirs.delete(dirname);
+                this.renderExcludedDirs();
+                this.addLog(`✅ Directory re-enabled for hunting: ${dirname}`, 'info');
+            }
+
+            renderExcludedDirs() {
+                const container = document.getElementById('excluded-dirs');
+                container.innerHTML = '';
+                
+                this.excludedDirs.forEach(dir => {
+                    const tag = document.createElement('div');
+                    tag.className = 'excluded-dir-tag';
+                    tag.innerHTML = `
+                        ${dir}
+                        <span class="remove-tag" onclick="dupHunter.removeExcludedDir('${dir}')">×</span>
+                    `;
+                    container.appendChild(tag);
+                });
+            }
+
+            async startHunt() {
+                const scanPath = document.getElementById('scan-path').value.trim();
+                const dbPath = document.getElementById('db-path').value.trim();
+                const includeHidden = document.getElementById('include-hidden').checked;
+                const showStats = document.getElementById('show-stats').checked;
+                const verbose = document.getElementById('verbose-mode').checked;
+
+                if (!scanPath) {
+                    this.addLog('❌ Hunt failed: Target directory required!', 'error');
+                    this.showAchievement('🎯 Specify your target to begin the hunt!');
+                    return;
+                }
+
+                if (this.isScanning) {
+                    this.addLog('⚠️ Hunt already in progress...', 'warning');
+                    return;
+                }
+
+                this.isScanning = true;
+                this.updateStatus('Hunting...', 'scanning');
+                
+                const startBtn = document.getElementById('start-scan');
+                startBtn.disabled = true;
+                startBtn.innerHTML = '<div class="loading-spinner"></div> Hunting in Progress...';
+
+                // Show progress section
+                document.getElementById('progress-section').classList.add('show');
+
+                this.addLog(`🎯 Hunt initiated for: ${scanPath}`, 'success');
+                this.addLog(`💾 Using database: ${dbPath}`, 'info');
+                this.addLog(`👁️ Hidden files: ${includeHidden ? 'Included' : 'Excluded'}`, 'info');
+                
+                if (this.excludedDirs.size > 0) {
+                    this.addLog(`🚫 Excluded directories: ${Array.from(this.excludedDirs).join(', ')}`, 'warning');
+                }
+
+                // Simulate hunting progress with gaming feel
+                const huntStages = [
+                    { progress: 10, message: '🔍 Initializing hunt parameters...' },
+                    { progress: 25, message: '📡 Scanning file system structure...' },
+                    { progress: 40, message: '🔬 Analyzing file signatures...' },
+                    { progress: 60, message: '🧬 Computing hash values...' },
+                    { progress: 80, message: '🎯 Identifying duplicate targets...' },
+                    { progress: 95, message: '📊 Generating hunt report...' },
+                    { progress: 100, message: '✅ Hunt completed successfully!' }
+                ];
+
+                for (let stage of huntStages) {
+                    await this.delay(800);
+                    this.updateProgress(stage.progress, stage.message);
+                    this.addLog(stage.message, stage.progress === 100 ? 'success' : 'info');
+                }
+
+                // Simulate results
+                await this.delay(500);
+                this.completeHunt();
+            }
+
+            completeHunt() {
+                this.isScanning = false;
+                this.updateStatus('Hunt Complete', 'success');
+                
+                const startBtn = document.getElementById('start-scan');
+                startBtn.disabled = false;
+                startBtn.innerHTML = `
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M8 5v14l11-7z"/>
+                    </svg>
+                    Begin Hunt
+                `;
+
+                // Hide progress section
+                setTimeout(() => {
+                    document.getElementById('progress-section').classList.remove('show');
+                }, 2000);
+
+                // Generate sample results
+                this.generateSampleResults();
+                
+                // Award XP and show achievement
+                this.awardXP(150);
+                this.showAchievement('🏆 Hunt Completed! +150 XP gained');
+                
+                // Update header stats
+                document.getElementById('header-scanned').textContent = '1,247';
+                document.getElementById('header-duplicates').textContent = '23';
+                document.getElementById('results-badge').textContent = '23';
+
+                this.addLog('🏆 Hunt mission accomplished! Duplicate targets eliminated.', 'success');
+            }
+
+            generateSampleResults() {
+                // Sample duplicate data for demonstration
+                const sampleDuplicates = [
+                    {
+                        hash: 'a1b2c3d4e5f6789012345678901234567890abcd',
+                        files: [
+                            '/home/user/documents/photo_backup.jpg',
+                            '/home/user/pictures/vacation/photo_backup.jpg',
+                            '/home/user/downloads/photo_backup (1).jpg'
+                        ],
+                        score: 95
+                    },
+                    {
+                        hash: 'f6e5d4c3b2a1987654321098765432109876fedc',
+                        files: [
+                            '/home/user/music/song.mp3',
+                            '/home/user/downloads/song (1).mp3'
+                        ],
+                        score: 87
+                    }
+                ];
+
+                this.displayResults(sampleDuplicates);
+                this.updateStatistics({
+                    total_files: 1247,
+                    unique_files: 1224,
+                    duplicate_files: 23,
+                    storage_efficiency: 98
+                });
+            }
+
+            displayResults(duplicates) {
+                const resultsContent = document.getElementById('results-content');
+                const resultsCount = document.getElementById('results-count');
+                
+                resultsCount.textContent = `${duplicates.length} Duplicate Sets`;
+                
+                if (duplicates.length === 0) {
+                    resultsContent.innerHTML = `
+                        <div class="empty-state">
+                            <svg class="empty-state-icon" viewBox="0 0 24 24">
+                                <path d="M9,11H15L13,13L11,11M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z"/>
+                            </svg>
+                            <h3>🎯 Perfect Hunt!</h3>
+                            <p>No duplicates found - your file system is already optimized!</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '';
+                duplicates.forEach((dupSet, index) => {
+                    html += `
+                        <div class="duplicate-set">
+                            <div class="duplicate-header">
+                                <div class="duplicate-info">
+                                    <h3>🎯 Target Set #${index + 1}</h3>
+                                    <div class="duplicate-hash">${dupSet.hash.substring(0, 16)}...</div>
+                                </div>
+                                <div class="duplicate-score">
+                                    ⭐ ${dupSet.score}% Match
+                                </div>
+                            </div>
+                            <ul class="file-list">
+                    `;
+                    
+                    dupSet.files.forEach((file, fileIndex) => {
+                        const isOriginal = fileIndex === 0;
+                        html += `
+                            <li class="file-item">
+                                <div class="file-icon">
+                                    ${isOriginal ? '👑' : '📄'}
+                                </div>
+                                <div class="file-info">
+                                    <div class="file-path">${file}</div>
+                                    <div class="file-size">${isOriginal ? 'Original' : 'Duplicate'} • 2.4 MB</div>
+                                </div>
+                                <div class="file-actions">
+                                    <button class="action-btn" onclick="copyToClipboard('${file}')">📋 Copy</button>
+                                    <button class="action-btn" onclick="showInExplorer('${file}')">📁 Show</button>
+                                    ${!isOriginal ? `<button class="action-btn danger" onclick="confirmDelete('${file}')">🗑️ Eliminate</button>` : ''}
+                                </div>
+                            </li>
+                        `;
+                    });
+                    
+                    html += `
+                            </ul>
+                        </div>
+                    `;
+                });
+                
+                resultsContent.innerHTML = html;
+            }
+
+            updateStatistics(stats) {
+                document.getElementById('total-files').textContent = stats.total_files.toLocaleString();
+                document.getElementById('unique-files').textContent = stats.unique_files.toLocaleString();
+                document.getElementById('duplicate-files').textContent = stats.duplicate_files.toLocaleString();
+                document.getElementById('storage-efficiency').textContent = stats.storage_efficiency + '%';
+            }
+
+            updateProgress(percentage, text) {
+                const progressSection = document.getElementById('progress-section');
+                const progressBar = document.getElementById('progress-bar');
+                const progressText = document.getElementById('progress-text');
+                const progressPercentage = document.getElementById('progress-percentage');
+
+                progressBar.style.width = `${percentage}%`;
+                progressText.textContent = text;
+                progressPercentage.textContent = `${percentage}%`;
+
+                if (percentage >= 100) {
+                    setTimeout(() => {
+                        progressSection.classList.remove('show');
+                    }, 3000);
+                }
+            }
+
+            updateStatus(status, type = 'ready') {
+                const statusText = document.getElementById('status-text');
+                const statusDot = document.getElementById('status-dot');
+                
+                statusText.textContent = status;
+                statusDot.className = `status-dot ${type}`;
+            }
+
+            awardXP(amount) {
+                this.userXP += amount;
+                if (this.userXP >= this.maxXP) {
+                    this.levelUp();
+                }
+                this.updateLevelDisplay();
+            }
+
+            levelUp() {
+                this.userLevel++;
+                this.userXP = this.userXP - this.maxXP;
+                this.maxXP = Math.floor(this.maxXP * 1.5);
+                this.showAchievement(`🚀 LEVEL UP! You are now Level ${this.userLevel}!`);
+                
+                // Update level display
+                document.querySelector('.level-number').textContent = `Level ${this.userLevel}`;
+                document.querySelector('.xp-display').textContent = `${this.userXP} / ${this.maxXP} XP`;
+            }
+
+            showAchievement(message) {
+                const notification = document.getElementById('achievement-notification');
+                const text = document.getElementById('achievement-text');
+                
+                text.textContent = message;
+                notification.classList.add('show');
+                
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 4000);
+            }
+
+            addLog(message, type = 'info') {
+                const logContainer = document.getElementById('log-container');
+                const logEntry = document.createElement('div');
+                logEntry.className = `log-entry ${type}`;
+                
+                const timestamp = new Date().toLocaleTimeString();
+                logEntry.innerHTML = `
+                    <span class="log-timestamp">[${timestamp}]</span>
+                    <span>${message}</span>
+                `;
+                
+                logContainer.appendChild(logEntry);
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+
+            clearLogs() {
+                const logContainer = document.getElementById('log-container');
+                logContainer.innerHTML = `
+                    <div class="log-entry info">
+                        <span class="log-timestamp">[${new Date().toLocaleTimeString()}]</span>
+                        <span>🧹 Battle log cleared and reset</span>
+                    </div>
+                `;
+            }
+
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        // Global utility functions
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                dupHunter.addLog(`📋 Path copied to clipboard: ${text}`, 'success');
+                dupHunter.showAchievement('📋 Path copied successfully!');
+            }).catch(() => {
+                dupHunter.addLog(`❌ Failed to copy path: ${text}`, 'error');
+            });
+        }
+
+        function showInExplorer(filepath) {
+            dupHunter.addLog(`📁 Opening file location: ${filepath}`, 'info');
+            dupHunter.showAchievement('📁 Opening file explorer...');
+            // In a real implementation, this would use an API call to open the file explorer
+        }
+
+        function confirmDelete(filepath) {
+            if (confirm(`🗑️ Are you sure you want to eliminate this duplicate file?\n\n${filepath}\n\n⚠️ This action cannot be undone!`)) {
+                dupHunter.addLog(`🗑️ File eliminated: ${filepath}`, 'success');
+                dupHunter.showAchievement('💥 Target eliminated! +25 XP');
+                dupHunter.awardXP(25);
+                
+                // Remove the file item from the display
+                const fileItems = document.querySelectorAll('.file-item');
+                fileItems.forEach(item => {
+                    if (item.textContent.includes(filepath)) {
+                        item.style.opacity = '0.5';
+                        item.style.transform = 'translateX(-20px)';
+                        setTimeout(() => item.remove(), 300);
+                    }
+                });
+            }
+        }
+
+        // Initialize the application
+        let dupHunter;
+        document.addEventListener('DOMContentLoaded', () => {
+            dupHunter = new GameifiedDupHunter();
+            
+            // Welcome message
+            setTimeout(() => {
+                dupHunter.showAchievement('🔥 Welcome back, Hunter! Ready for battle?');
+            }, 1000);
+        });
+
+        // Easter eggs and fun interactions
+        document.addEventListener('keydown', (e) => {
+            // Konami code easter egg: ↑ ↑ ↓ ↓ ← → ← → B A
+            // For simplicity, just check for Ctrl+Shift+H for "Hunter Mode"
+            if (e.ctrlKey && e.shiftKey && e.key === 'H') {
+                dupHunter.showAchievement('🎮 Hunter Mode Activated! All systems enhanced!');
+                document.body.style.filter = 'hue-rotate(45deg) saturate(1.2)';
+                setTimeout(() => {
+                    document.body.style.filter = '';
+                }, 3000);
+            }
+        });
+
+        // Add some particle effects on successful scans
+        function createParticleEffect(element) {
+            for (let i = 0; i < 10; i++) {
+                const particle = document.createElement('div');
+                particle.style.cssText = `
+                    position: absolute;
+                    width: 4px;
+                    height: 4px;
+                    background: var(--orange-primary);
+                    border-radius: 50%;
+                    pointer-events: none;
+                    z-index: 1000;
+                    animation: particle-explosion 0.6s ease-out forwards;
+                `;
+                
+                const rect = element.getBoundingClientRect();
+                particle.style.left = rect.left + rect.width/2 + 'px';
+                particle.style.top = rect.top + rect.height/2 + 'px';
+                
+                document.body.appendChild(particle);
+                
+                setTimeout(() => particle.remove(), 600);
+            }
+        }
+
+        // Add particle animation styles
+        const particleStyle = document.createElement('style');
+        particleStyle.textContent = `
+            @keyframes particle-explosion {
+                0% {
+                    transform: translate(0, 0) scale(1);
+                    opacity: 1;
+                }
+                100% {
+                    transform: translate(${Math.random() * 200 - 100}px, ${Math.random() * 200 - 100}px) scale(0);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(particleStyle);
+    </script>
+</body>
+</html>
