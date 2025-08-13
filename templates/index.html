@@ -22,7 +22,7 @@
             --gradient-orange: linear-gradient(135deg, #ff6b35 0%, #ff4757 100%);
             --gradient-orange-hover: linear-gradient(135deg, #ff8c42 0%, #ff5722 100%);
             --success-color: #4caf50;
-            --warning-color: #ffc107;
+            --warning-color: #ff8707;
             --danger-color: #f44336;
             --info-color: #2196f3;
             --border-color: #404040;
@@ -1467,8 +1467,8 @@
                                 ${file.exists ? `
                                     <div class="btn-group">
                                         <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;" onclick="openFileLocation('${file.path.replace(/'/g, "\'")}')">📂 Open Location</button>
-                                        <button class="btn btn-danger" style="font-size: 12px; padding: 6px 12px;" onclick="deleteFile('${file.path.replace(/'/g, "\'")}')">🗑️ Delete</button>
-                                        <button class="btn btn-success" style="font-size: 12px; padding: 6px 12px;" onclick="keepOnlyFile('${file.path.replace(/'/g, "\'")}', ${setIndex})">⭐ Keep Only This</button>
+                                        <button class="btn btn-warning" style="font-size: 12px; padding: 6px 12px;" onclick="deleteFile('${file.path.replace(/'/g, "\'")}')">🗑️ Delete</button>
+                                        <button class="btn btn-danger" style="font-size: 12px; padding: 6px 12px;" onclick="keepOnlyFile('${file.path.replace(/'/g, "\'")}', ${setIndex})">⭐ Keep Only This</button>
                                     </div>
                                 ` : '<div style="color: var(--text-muted); font-style: italic;">File no longer exists</div>'}
                             </div>
