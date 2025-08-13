@@ -169,3 +169,4 @@ The tool creates a SQLite database with two main tables:
 
 No external dependencies required for core functionality (command line interface).
 ## Troubleshooting
+Its ai made, so ask an ai...
