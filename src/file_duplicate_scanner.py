@@ -434,7 +434,7 @@ def print_scan_results(stats: ScanStats) -> None:
     print(f"  Total files processed: {stats.files_processed}")
 
 
-def scan_files(directory_path: str, conn: sqlite3.Connection, include_hidden: bool = False, excluded_dirs: List[str] = None) -> int:
+def scan_files(directory_path: str, conn: sqlite3.Connection, include_hidden: bool = False, excluded_dirs: List[str] = None, stop_event=None) -> int:
     """
     Scan files in the given directory and update database incrementally.
     Only processes files that are missing or have changed modification times.
@@ -445,6 +445,7 @@ def scan_files(directory_path: str, conn: sqlite3.Connection, include_hidden: bo
         conn: Database connection
         include_hidden: Whether to include hidden files and directories (starting with dot)
         excluded_dirs: List of directory names/paths to exclude
+        stop_event: Optional threading.Event to request early stop
         
     Returns:
         Number of files processed.
@@ -471,20 +472,30 @@ def scan_files(directory_path: str, conn: sqlite3.Connection, include_hidden: bo
         scanned_paths = set()
         
         # Walk through all files in the directory tree
+        stopped = False
         for root, dirs, files in os.walk(abs_directory_path):
+            if stop_event is not None and getattr(stop_event, 'is_set', lambda: False)():
+                print("Stop requested. Stopping scan...")
+                stopped = True
+                break
             # Filter out directories that should be skipped
             filter_directories(dirs, root, include_hidden, excluded_dirs_set, stats)
             
             # Process files in current directory
             for file in files:
+                if stop_event is not None and getattr(stop_event, 'is_set', lambda: False)():
+                    stopped = True
+                    break
                 process_single_file(file, root, include_hidden, existing_files,
                                   cursor, conn, stats, scanned_paths)
+            if stopped:
+                break
         
         # Final commit
         conn.commit()
         
         # Remove deleted files from database (only those that were in scan scope)
-        if scanned_paths:  # Only if we actually scanned some files
+        if not stopped and scanned_paths:  # Only if we actually scanned some files fully
             stats.removed_count = remove_deleted_files(conn, scanned_paths)
         
         # Print results
