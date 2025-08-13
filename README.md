@@ -2,6 +2,8 @@
 
 ⚠️ **AI-Generated Code - Use at Your Own Risk** ⚠️
 
+![Unbenannt](https://github.com/user-attachments/assets/7f4cd695-60e2-4043-b364-397b02ce9af7)
+
 **This project was generated using AI assistance. While efforts have been made to ensure functionality and safety, this code has not been extensively tested in all environments. Use this software at your own risk and always backup your important data before running any file deletion operations.**
 
 ## Overview
