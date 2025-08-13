@@ -22,6 +22,17 @@ from file_duplicate_scanner import (
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 TEMPLATES_DIR = os.path.join(PROJECT_ROOT, 'templates')
 
+def resolve_db_path(db_path: str) -> str:
+    """Always resolve the SQLite DB file under the project root.
+    Only the basename of the provided path is used to avoid directory traversal.
+    Defaults to 'file_scanner.db' if value is empty/invalid.
+    """
+    try:
+        db_file = os.path.basename((db_path or '').strip()) or 'file_scanner.db'
+    except Exception:
+        db_file = 'file_scanner.db'
+    return os.path.join(PROJECT_ROOT, db_file)
+
 app = Flask(__name__, template_folder=TEMPLATES_DIR)
 app.secret_key = 'file_scanner_secret_key'
 
@@ -52,7 +63,7 @@ def start_scan():
 
     data = request.json
     scan_path = data.get('scan_path', '')
-    db_path = data.get('db_path', 'file_scanner.db')
+    db_path = resolve_db_path(data.get('db_path', 'file_scanner.db'))
     include_hidden = data.get('include_hidden', False)
     excluded_dirs = data.get('excluded_dirs', [])
 
@@ -89,7 +100,7 @@ def get_scan_status():
 @app.route('/api/get_stats')
 def get_stats():
     """Get database statistics."""
-    db_path = request.args.get('db_path', 'file_scanner.db')
+    db_path = resolve_db_path(request.args.get('db_path', 'file_scanner.db'))
 
     if not os.path.exists(db_path):
         return jsonify({'error': 'Database file does not exist'}), 400
@@ -161,7 +172,7 @@ def load_duplicates():
     """Load duplicates from database, filtered by current directory."""
     global duplicates_cache
 
-    db_path = request.args.get('db_path', 'file_scanner.db')
+    db_path = resolve_db_path(request.args.get('db_path', 'file_scanner.db'))
     directory_filter = request.args.get('directory_filter', scan_status.get('current_directory'))
     include_ignored = request.args.get('include_ignored', 'false').lower() == 'true'
 
@@ -227,7 +238,7 @@ def ignore_duplicate():
     """Mark a duplicate set as ignored."""
     data = request.json
     sha1_hash = data.get('sha1_hash', '')
-    db_path = data.get('db_path', 'file_scanner.db')
+    db_path = resolve_db_path(data.get('db_path', 'file_scanner.db'))
 
     if not sha1_hash:
         return jsonify({'error': 'SHA1 hash is required'}), 400
@@ -253,7 +264,7 @@ def unignore_duplicate():
     """Remove a duplicate set from ignored list."""
     data = request.json
     sha1_hash = data.get('sha1_hash', '')
-    db_path = data.get('db_path', 'file_scanner.db')
+    db_path = resolve_db_path(data.get('db_path', 'file_scanner.db'))
 
     if not sha1_hash:
         return jsonify({'error': 'SHA1 hash is required'}), 400
