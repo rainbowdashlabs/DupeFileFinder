@@ -45,6 +45,9 @@ scan_status = {
     'current_directory': None
 }
 
+# Stop control for current scan
+current_scan_stop_event = None
+
 scan_queue = queue.Queue()
 duplicates_cache = []
 
@@ -56,7 +59,7 @@ def index():
 @app.route('/api/start_scan', methods=['POST'])
 def start_scan():
     """Start a file scan."""
-    global scan_status
+    global scan_status, current_scan_stop_event
 
     if scan_status['running']:
         return jsonify({'error': 'Scan already running'}), 400
@@ -82,10 +85,13 @@ def start_scan():
         'current_directory': normalize_path(scan_path)
     }
 
+    # Create a new stop event for this scan
+    current_scan_stop_event = threading.Event()
+
     # Start scan in background thread
     scan_thread = threading.Thread(
         target=run_scan_background,
-        args=(scan_path, db_path, include_hidden, excluded_dirs),
+        args=(scan_path, db_path, include_hidden, excluded_dirs, current_scan_stop_event),
         daemon=True
     )
     scan_thread.start()
@@ -96,6 +102,21 @@ def start_scan():
 def get_scan_status():
     """Get current scan status."""
     return jsonify(scan_status)
+
+@app.route('/api/stop_scan', methods=['POST'])
+def stop_scan():
+    """Signal the background scan to stop early."""
+    global current_scan_stop_event, scan_status
+    if not scan_status.get('running'):
+        return jsonify({'success': True, 'message': 'No scan is currently running'})
+    if current_scan_stop_event is None:
+        return jsonify({'error': 'No active stop event'}), 400
+    try:
+        current_scan_stop_event.set()
+        scan_status['progress'] = 'Stopping scan...'
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/get_stats')
 def get_stats():
@@ -362,7 +383,7 @@ def keep_only_file():
         'errors': errors
     })
 
-def run_scan_background(scan_path, db_path, include_hidden, excluded_dirs):
+def run_scan_background(scan_path, db_path, include_hidden, excluded_dirs, stop_event: threading.Event):
     """Run scan in background thread."""
     global scan_status
 
@@ -388,10 +409,14 @@ def run_scan_background(scan_path, db_path, include_hidden, excluded_dirs):
                 scan_path,
                 conn,
                 include_hidden=include_hidden,
-                excluded_dirs=excluded_dirs
+                excluded_dirs=excluded_dirs,
+                stop_event=stop_event
             )
 
-            scan_status['progress'] = f'Scan completed. {files_processed} files processed.'
+            if stop_event.is_set():
+                scan_status['progress'] = f'Scan stopped. {files_processed} files processed before stop.'
+            else:
+                scan_status['progress'] = f'Scan completed. {files_processed} files processed.'
 
         finally:
             builtins.print = original_print
@@ -403,6 +428,12 @@ def run_scan_background(scan_path, db_path, include_hidden, excluded_dirs):
 
     finally:
         scan_status['running'] = False
+        # Clear stop event after scan ends
+        try:
+            global current_scan_stop_event
+            current_scan_stop_event = None
+        except Exception:
+            pass
 
 def format_file_size(size_bytes):
     """Format file size in human readable format."""
