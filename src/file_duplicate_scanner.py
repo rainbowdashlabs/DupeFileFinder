@@ -1,5 +1,3 @@
-
-#!/usr/bin/env python3
 """
 File duplicate scanner that processes files in a directory,
 stores metadata in SQLite, and identifies duplicates.
