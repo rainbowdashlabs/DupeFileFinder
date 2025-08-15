@@ -1085,6 +1085,18 @@
                                 <div class="stat-value" id="stat-db-size">-</div>
                                 <div class="stat-label">Database Size</div>
                             </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="stat-total-size">-</div>
+                                <div class="stat-label">Total Size</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="stat-unique-size">-</div>
+                                <div class="stat-label">Unique Size</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="stat-potential-savings">-</div>
+                                <div class="stat-label">Potential Savings</div>
+                            </div>
                         </div>
                         
                         <button class="btn btn-secondary" onclick="loadStats()">🔄 Refresh Statistics</button>
@@ -1109,6 +1121,15 @@
             'logs': '📋 Operation Intelligence Logs',
             'stats': '📈 Performance Analytics Dashboard'
         };
+
+        function formatFileSize(sizeBytes) {
+            if (sizeBytes === 0) return '0 B';
+            const sizeNames = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(sizeBytes) / Math.log(1024));
+            const p = Math.pow(1024, i);
+            const s = Math.round((sizeBytes / p) * 100) / 100;
+            return s + ' ' + sizeNames[i];
+        }
 
         function showToast(message, type = 'success') {
             const toastContainer = document.getElementById('toast-container');
@@ -1288,6 +1309,9 @@
                     document.getElementById('stat-ignored-sets').textContent = stats.ignored_sets.toLocaleString();
                     document.getElementById('stat-efficiency').textContent = stats.storage_efficiency + '%';
                     document.getElementById('stat-db-size').textContent = stats.database_size_mb + ' MB';
+                    document.getElementById('stat-total-size').textContent = formatFileSize(stats.total_size || 0);
+                    document.getElementById('stat-unique-size').textContent = formatFileSize(stats.unique_size || 0);
+                    document.getElementById('stat-potential-savings').textContent = formatFileSize(stats.potential_savings || 0);
                 } else {
                     showToast('Error loading statistics: ' + result.error, 'error');
                 }
@@ -1439,7 +1463,8 @@
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <div>
                                 <strong>Duplicate Set #${setIndex + 1}</strong> 
-                                (${dupSet.files.length} files) - Hash: ${dupSet.hash_short}
+                                (${dupSet.files.length} files, ${formatFileSize(dupSet.file_size || 0)} each) - Hash: ${dupSet.hash_short}
+                                <br><small style="color: var(--warning-color);">💾 Potential savings: ${formatFileSize(dupSet.potential_savings || 0)}</small>
                             </div>
                             ${dupSet.ignored ? '<span class="status-badge status-warning">IGNORED</span>' : ''}
                         </div>

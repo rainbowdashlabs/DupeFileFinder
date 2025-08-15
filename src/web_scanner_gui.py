@@ -130,13 +130,19 @@ def get_stats():
         conn = create_database(db_path)
         cursor = conn.cursor()
 
-        # Total files
-        cursor.execute('SELECT COUNT(*) FROM files')
-        total_files = cursor.fetchone()[0]
+        # Total files and total size
+        cursor.execute('SELECT COUNT(*), COALESCE(SUM(file_size), 0) FROM files')
+        total_files, total_size = cursor.fetchone()
 
-        # Unique hashes
-        cursor.execute('SELECT COUNT(DISTINCT sha1_hash) FROM files')
-        unique_hashes = cursor.fetchone()[0]
+        # Unique files and unique size (sum of sizes for unique hashes)
+        cursor.execute('''
+            SELECT COUNT(DISTINCT sha1_hash), COALESCE(SUM(min_size), 0) FROM (
+                SELECT sha1_hash, MIN(file_size) as min_size 
+                FROM files 
+                GROUP BY sha1_hash
+            )
+        ''')
+        unique_hashes, unique_size = cursor.fetchone()
 
         # Files with duplicates
         cursor.execute('''
@@ -148,6 +154,10 @@ def get_stats():
             )
         ''')
         duplicate_files = cursor.fetchone()[0]
+
+        # Calculate potential savings
+        duplicates = find_duplicates(conn, include_ignored=False)
+        potential_savings = sum(potential_savings for _, _, _, potential_savings in duplicates)
 
         # Ignored duplicate sets
         cursor.execute('SELECT COUNT(*) FROM ignored_duplicates')
@@ -170,14 +180,18 @@ def get_stats():
 
         conn.close()
 
-        storage_efficiency = ((unique_hashes/total_files)*100) if total_files > 0 else 0
+        # Storage efficiency based on file size rather than file count
+        storage_efficiency = ((unique_size / total_size) * 100) if total_size > 0 else 0
 
         return jsonify({
             'success': True,
             'stats': {
                 'total_files': total_files,
+                'total_size': total_size,
                 'unique_files': unique_hashes,
+                'unique_size': unique_size,
                 'duplicate_files': duplicate_files,
+                'potential_savings': potential_savings,
                 'ignored_sets': ignored_sets,
                 'storage_efficiency': round(storage_efficiency, 1),
                 'database_size_mb': round(db_size_mb, 2),
@@ -207,12 +221,14 @@ def load_duplicates():
 
         # Format duplicates for web display
         formatted_duplicates = []
-        for i, (hash_value, file_paths) in enumerate(duplicates):
+        for i, (hash_value, file_paths, file_size, potential_savings) in enumerate(duplicates):
             duplicate_set = {
                 'id': i,
                 'hash': hash_value,
                 'hash_short': hash_value[:16] + "...",
                 'files': [],
+                'file_size': file_size,
+                'potential_savings': potential_savings,
                 'ignored': False
             }
 
